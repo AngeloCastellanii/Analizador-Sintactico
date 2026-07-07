@@ -5,5 +5,5 @@ pub mod parser;
 
 pub use ast::*;
 pub use ast_print::ast_a_arbol;
-pub use error::{ErrorParseo, Resultado};
+pub use error::{describir_token, ErrorParseo, Resultado};
 pub use parser::AnalizadorSintactico;

@@ -5,11 +5,38 @@ use crate::error::{ErrorParseo, Resultado};
 pub struct AnalizadorSintactico {
     tokens: Vec<Token>,
     pos: usize,
+    lineas_fuente: Vec<String>,
 }
 
 impl AnalizadorSintactico {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, pos: 0 }
+        Self { tokens, pos: 0, lineas_fuente: Vec::new() }
+    }
+
+    pub fn con_fuente(tokens: Vec<Token>, fuente: &str) -> Self {
+        Self {
+            tokens,
+            pos: 0,
+            lineas_fuente: fuente.lines().map(str::to_string).collect(),
+        }
+    }
+
+    fn linea_en(&self, posicion: Posicion) -> Option<String> {
+        self.lineas_fuente.get(posicion.linea.saturating_sub(1)).cloned()
+    }
+
+    fn error_token(&self, esperado: impl Into<String>, token: &Token) -> ErrorParseo {
+        ErrorParseo::token_inesperado(
+            token.posicion,
+            esperado,
+            token,
+            self.linea_en(token.posicion),
+        )
+    }
+
+    fn error_actual(&self, esperado: impl Into<String>) -> ErrorParseo {
+        let token = self.actual().clone();
+        self.error_token(esperado, &token)
     }
 
     pub fn parsear(&mut self) -> Resultado<Programa> {
@@ -51,9 +78,10 @@ impl AnalizadorSintactico {
     }
 
     fn esperar(&mut self, tipo: TipoToken) -> Resultado<Token> {
-        if self.coincide(tipo.clone()) { Ok(self.avanzar()) }
-        else {
-            Err(ErrorParseo::token_inesperado(self.pos_actual(), &format!("{:?}", tipo), &self.actual().tipo))
+        if self.coincide(tipo.clone()) {
+            Ok(self.avanzar())
+        } else {
+            Err(self.error_actual(format!("`{}`", tipo)))
         }
     }
 
@@ -89,17 +117,6 @@ impl AnalizadorSintactico {
                 | TipoToken::Void | TipoToken::Char | TipoToken::Short | TipoToken::Int
                 | TipoToken::Long | TipoToken::Float | TipoToken::Double | TipoToken::Signed
                 | TipoToken::Unsigned | TipoToken::Struct | TipoToken::Union | TipoToken::Enum
-        )
-    }
-    fn es_inicio_decl(&self) -> bool {
-        matches!(
-            self.actual().tipo,
-            TipoToken::Auto | TipoToken::Register | TipoToken::Static | TipoToken::Extern
-                | TipoToken::Typedef | TipoToken::Const | TipoToken::Volatile
-                | TipoToken::Void | TipoToken::Char | TipoToken::Short | TipoToken::Int
-                | TipoToken::Long | TipoToken::Float | TipoToken::Double | TipoToken::Signed
-                | TipoToken::Unsigned | TipoToken::Struct | TipoToken::Union | TipoToken::Enum
-                | TipoToken::Identificador
         )
     }
 
@@ -168,7 +185,13 @@ impl AnalizadorSintactico {
             TipoToken::Double => TipoPrimitivo::Double,
             TipoToken::Signed => TipoPrimitivo::Signed,
             TipoToken::Unsigned => TipoPrimitivo::Unsigned,
-            other => return Err(ErrorParseo::token_inesperado(self.pos_actual(), "tipo primitivo", &other)),
+            _ => {
+                let token = self.actual().clone();
+                return Err(self.error_token(
+                    "un tipo primitivo (`int`, `char`, `void`, ...)",
+                    &token,
+                ));
+            }
         };
         let es_long_doble = matches!(prim, TipoPrimitivo::Long | TipoPrimitivo::Double);
         let mut tipo = Tipo::Primitivo(prim);
@@ -723,7 +746,7 @@ impl AnalizadorSintactico {
 
     fn parse_primaria(&mut self) -> Resultado<Expr> {
         let pos = self.pos_actual();
-        match self.actual().tipo.clone() {
+        match self.actual().tipo {
             TipoToken::Entero => {
                 let v = self.avanzar().valor.unwrap_or_default();
                 Ok(Expr::Literal { posicion: pos, valor: Literal::Entero(v) })
@@ -750,7 +773,13 @@ impl AnalizadorSintactico {
                 self.esperar(TipoToken::ParentesisDer)?;
                 Ok(e)
             }
-            other => Err(ErrorParseo::token_inesperado(pos, "expresion primaria", &other)),
+            _ => {
+                let token = self.actual().clone();
+                Err(self.error_token(
+                    "una expresión (literal, identificador o `(`...`)`)",
+                    &token,
+                ))
+            }
         }
     }
 }
