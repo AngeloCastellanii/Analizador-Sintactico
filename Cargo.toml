@@ -1,0 +1,13 @@
+﻿[package]
+name = "analizador_sintactico"
+version = "0.1.0"
+edition = "2021"
+description = "Analizador sintactico estilo C - genera AST"
+
+[[bin]]
+name = "analizador_sintactico"
+path = "src/main.rs"
+
+[dependencies]
+analizador_lexico = { path = "../Analizador Lexico" }
+soporte = { path = "../soporte" }
