@@ -9,5 +9,5 @@ name = "analizador_sintactico"
 path = "src/main.rs"
 
 [dependencies]
-analizador_lexico = { path = "../Analizador-Lexico" }
-soporte = { path = "../Librerias-de-soporte" }
+analizador_lexico = { path = "../Analizador Lexico" }
+soporte = { path = "../soporte" }

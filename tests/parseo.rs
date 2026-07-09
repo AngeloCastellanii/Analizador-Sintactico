@@ -31,7 +31,7 @@ fn parsea_archivo_ejemplo() {
 }
 
 #[test]
-fn imprime_valores_y_omite_bloques_vacios() {
+fn imprime_arbol_ramificado_con_comillas() {
     let src = "int main() { int x = 1; if (x > 0) { x++; } return x != 0; }";
     let tokens = AnalizadorLexico::desde_texto(src).tokenizar();
     let ast = AnalizadorSintactico::con_fuente(tokens, src)
@@ -39,11 +39,24 @@ fn imprime_valores_y_omite_bloques_vacios() {
         .expect("debe parsear");
 
     let salida = ast.to_string();
-    assert!(salida.contains("x = 1"));
-    assert!(salida.contains("x > 0"));
-    assert!(salida.contains("x++"));
-    assert!(salida.contains("x != 0"));
+    assert!(salida.contains("Decl: x"));
+    assert!(salida.contains(">"));
+    assert!(salida.contains("!="));
+    assert!(salida.contains("++"));
+    assert!(!salida.contains("cond: x > 0"));
     assert!(!salida.contains("Bloque vacío"));
+}
+
+#[test]
+fn imprime_cadenas_con_comillas() {
+    let src = r#"int main() { const char *msg = "Hola, mundo"; return 0; }"#;
+    let tokens = AnalizadorLexico::desde_texto(src).tokenizar();
+    let ast = AnalizadorSintactico::con_fuente(tokens, src)
+        .parsear()
+        .expect("debe parsear");
+
+    let salida = ast.to_string();
+    assert!(salida.contains(r#""Hola, mundo""#));
 }
 
 #[test]
