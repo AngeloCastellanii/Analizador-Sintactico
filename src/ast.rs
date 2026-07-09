@@ -167,9 +167,9 @@ pub enum OperadorBinario {
     Igual, Distinto, YLogico, OLogico, YBit, OBit, XorBit, DesplazarIzq, DesplazarDer,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperadorUnario { Mas, Menos, Negacion, Complemento, Asterisco, YBit, Incremento, Decremento }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperadorAsignacion { Asignar, MasAsignar, MenosAsignar, AsteriscoAsignar, BarraAsignar, PorcentajeAsignar }
 

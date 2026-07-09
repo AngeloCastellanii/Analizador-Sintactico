@@ -56,6 +56,7 @@ fn nodo_bloque_opt(b: &Bloque) -> Option<soporte::structures::tree::Node<String>
 
 fn nodo_sentencia(s: &Sentencia) -> Option<soporte::structures::tree::Node<String>> {
     match s {
+<<<<<<< Updated upstream
         Sentencia::Compuesta(b) => nodo_bloque_opt(b),
         Sentencia::Expr { expr, .. } => Some(soporte::structures::tree::Node::new(format!("ExprStmt: {}", fmt_expr_opt(expr.as_deref())))),
         Sentencia::Seleccion(Seleccion::If { condicion, entonces, sino, .. }) => {
@@ -70,6 +71,20 @@ fn nodo_sentencia(s: &Sentencia) -> Option<soporte::structures::tree::Node<Strin
                 }
             }
             Some(n)
+=======
+        Sentencia::Compuesta(b) => nodo_bloque(b),
+        Sentencia::Expr { expr, .. } => {
+            soporte::structures::tree::Node::new(format!("ExprStmt: {:?}", expr))
+        }
+        Sentencia::Seleccion(Seleccion::If { condicion, entonces, sino, .. }) => {
+            let mut n = soporte::structures::tree::Node::new("If".to_string());
+            n.agregar_hijo(soporte::structures::tree::Node::new(format!("cond: {:?}", condicion)));
+            n.agregar_hijo(nodo_sentencia(entonces));
+            if let Some(s) = sino {
+                n.agregar_hijo(nodo_sentencia(s));
+            }
+            n
+>>>>>>> Stashed changes
         }
         Sentencia::Seleccion(Seleccion::Switch { condicion, cuerpo, .. }) => {
             let mut n = soporte::structures::tree::Node::new("Switch".to_string());
@@ -111,10 +126,21 @@ fn nodo_sentencia(s: &Sentencia) -> Option<soporte::structures::tree::Node<Strin
             }
             Some(n)
         }
+<<<<<<< Updated upstream
         Sentencia::Salto(Salto::Retornar { valor, .. }) => Some(soporte::structures::tree::Node::new(format!("Return: {}", fmt_expr_opt(valor.as_deref())))),
         Sentencia::Salto(Salto::Romper { .. }) => Some(soporte::structures::tree::Node::new("Break".to_string())),
         Sentencia::Salto(Salto::Continuar { .. }) => Some(soporte::structures::tree::Node::new("Continue".to_string())),
         Sentencia::Salto(Salto::Goto { etiqueta, .. }) => Some(soporte::structures::tree::Node::new(format!("Goto: {}", etiqueta))),
+=======
+        Sentencia::Salto(Salto::Retornar { valor, .. }) => {
+            soporte::structures::tree::Node::new(format!("Return: {:?}", valor))
+        }
+        Sentencia::Salto(Salto::Romper { .. }) => soporte::structures::tree::Node::new("Break".to_string()),
+        Sentencia::Salto(Salto::Continuar { .. }) => soporte::structures::tree::Node::new("Continue".to_string()),
+        Sentencia::Salto(Salto::Goto { etiqueta, .. }) => {
+            soporte::structures::tree::Node::new(format!("Goto: {}", etiqueta))
+        }
+>>>>>>> Stashed changes
         Sentencia::Etiquetada { etiqueta, sentencia, .. } => {
             let mut n = soporte::structures::tree::Node::new(format!("Etiqueta: {}", fmt_etiqueta(etiqueta)));
             if let Some(hijo) = nodo_sentencia(sentencia) {

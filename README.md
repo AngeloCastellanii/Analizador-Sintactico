@@ -29,7 +29,7 @@ cargo test
 
 1. **Léxico:** el archivo `.c` se tokeniza (`Vec<Token>`).
 2. **Sintáctico:** el parser construye el AST (`Programa`).
-3. **Salida:** se imprime el árbol en consola.
+3. **Salida:** se imprime el árbol del AST en la terminal.
 
 ## Estructura del proyecto
 
@@ -37,7 +37,7 @@ cargo test
 |---------|-------------|
 | `src/ast.rs` | Definición de nodos del AST |
 | `src/parser.rs` | Parser por descenso recursivo |
-| `src/ast_print.rs` | Visualización del árbol |
+| `src/ast_print.rs` | Visualización del árbol en texto |
 | `src/main.rs` | CLI |
 | `ejemplos/ejemplo.c` | Programa de prueba |
 
