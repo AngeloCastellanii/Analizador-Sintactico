@@ -52,7 +52,7 @@ fn nodo_inicializador(init: &Inicializador) -> TreeNode {
     match init {
         Inicializador::Expr(expr) => {
             let mut n = TreeNode::new("=".to_string());
-            agregar_expr_infix(expr, &mut n);
+            n.agregar_hijo(nodo_expr(expr));
             n
         }
         Inicializador::Lista(items) => {
@@ -94,14 +94,14 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
         Sentencia::Expr { expr, .. } => {
             let mut n = TreeNode::new("ExprStmt".to_string());
             if let Some(e) = expr {
-                agregar_expr_infix(e, &mut n);
+                n.agregar_hijo(nodo_expr(e));
             }
             Some(n)
         }
         Sentencia::Seleccion(Seleccion::If { condicion, entonces, sino, .. }) => {
             let mut n = TreeNode::new("If".to_string());
             let mut cond = TreeNode::new("condicion".to_string());
-            agregar_expr_infix(condicion, &mut cond);
+            cond.agregar_hijo(nodo_expr(condicion));
             n.agregar_hijo(cond);
             if let Some(then_node) = nodo_sentencia(entonces) {
                 n.agregar_hijo(then_node);
@@ -116,7 +116,7 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
         Sentencia::Seleccion(Seleccion::Switch { condicion, cuerpo, .. }) => {
             let mut n = TreeNode::new("Switch".to_string());
             let mut cond = TreeNode::new("condicion".to_string());
-            agregar_expr_infix(condicion, &mut cond);
+            cond.agregar_hijo(nodo_expr(condicion));
             n.agregar_hijo(cond);
             if let Some(cuerpo_node) = nodo_sentencia(cuerpo) {
                 n.agregar_hijo(cuerpo_node);
@@ -126,7 +126,7 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
         Sentencia::Iteracion(Iteracion::While { condicion, cuerpo, .. }) => {
             let mut n = TreeNode::new("While".to_string());
             let mut cond = TreeNode::new("condicion".to_string());
-            agregar_expr_infix(condicion, &mut cond);
+            cond.agregar_hijo(nodo_expr(condicion));
             n.agregar_hijo(cond);
             if let Some(cuerpo_node) = nodo_sentencia(cuerpo) {
                 n.agregar_hijo(cuerpo_node);
@@ -139,7 +139,7 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
                 n.agregar_hijo(cuerpo_node);
             }
             let mut cond = TreeNode::new("condicion".to_string());
-            agregar_expr_infix(condicion, &mut cond);
+            cond.agregar_hijo(nodo_expr(condicion));
             n.agregar_hijo(cond);
             Some(n)
         }
@@ -156,12 +156,12 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
             }
             if let Some(cond) = condicion {
                 let mut cond_n = TreeNode::new("condicion".to_string());
-                agregar_expr_infix(cond, &mut cond_n);
+                cond_n.agregar_hijo(nodo_expr(cond));
                 n.agregar_hijo(cond_n);
             }
             if let Some(inc) = incremento {
                 let mut inc_n = TreeNode::new("incremento".to_string());
-                agregar_expr_infix(inc, &mut inc_n);
+                inc_n.agregar_hijo(nodo_expr(inc));
                 n.agregar_hijo(inc_n);
             }
             if let Some(cuerpo_node) = nodo_sentencia(cuerpo) {
@@ -172,7 +172,7 @@ fn nodo_sentencia(s: &Sentencia) -> Option<TreeNode> {
         Sentencia::Salto(Salto::Retornar { valor, .. }) => {
             let mut n = TreeNode::new("Return".to_string());
             if let Some(v) = valor {
-                agregar_expr_infix(v, &mut n);
+                n.agregar_hijo(nodo_expr(v));
             }
             Some(n)
         }
@@ -196,7 +196,7 @@ fn nodo_for_init(init: &ForInit) -> TreeNode {
         ForInit::Expr(expr) => {
             let mut n = TreeNode::new("init".to_string());
             if let Some(e) = expr {
-                agregar_expr_infix(e, &mut n);
+                n.agregar_hijo(nodo_expr(e));
             }
             n
         }
@@ -210,38 +210,26 @@ fn nodo_for_init(init: &ForInit) -> TreeNode {
     }
 }
 
-/// Expande una expresión en nodos hermanos en orden de lectura: x, >, 0
-fn agregar_expr_infix(e: &Expr, padre: &mut TreeNode) {
+/// Construye un subárbol por expresión respetando precedencia y anidamiento del AST.
+fn nodo_expr(e: &Expr) -> TreeNode {
     match e {
+        Expr::Literal { valor, .. } => TreeNode::new(fmt_literal(valor)),
+        Expr::Identificador { nombre, .. } => TreeNode::new(nombre.clone()),
         Expr::Binaria {
-            izquierda,
             operador,
+            izquierda,
             derecha,
             ..
         } => {
-            agregar_expr_infix(izquierda, padre);
-            padre.agregar_hijo(TreeNode::new(fmt_operador_binario(*operador)));
-            agregar_expr_infix(derecha, padre);
+            let mut n = TreeNode::new(fmt_operador_binario(*operador));
+            n.agregar_hijo(nodo_expr(izquierda));
+            n.agregar_hijo(nodo_expr(derecha));
+            n
         }
-        Expr::Unaria { operador, operando, .. } => match operador {
-            OperadorUnario::Incremento | OperadorUnario::Decremento => {
-                agregar_expr_infix(operando, padre);
-                padre.agregar_hijo(TreeNode::new(fmt_operador_unario(*operador)));
-            }
-            _ => {
-                padre.agregar_hijo(TreeNode::new(fmt_operador_unario(*operador)));
-                agregar_expr_infix(operando, padre);
-            }
-        },
-        Expr::Asignacion {
-            destino,
-            operador,
-            valor,
-            ..
-        } => {
-            agregar_expr_infix(destino, padre);
-            padre.agregar_hijo(TreeNode::new(fmt_operador_asignacion(*operador)));
-            agregar_expr_infix(valor, padre);
+        Expr::Unaria { operador, operando, .. } => {
+            let mut n = TreeNode::new(fmt_operador_unario(*operador));
+            n.agregar_hijo(nodo_expr(operando));
+            n
         }
         Expr::Ternaria {
             condicion,
@@ -249,41 +237,39 @@ fn agregar_expr_infix(e: &Expr, padre: &mut TreeNode) {
             falso,
             ..
         } => {
-            agregar_expr_infix(condicion, padre);
-            padre.agregar_hijo(TreeNode::new("?".to_string()));
-            agregar_expr_infix(verdadero, padre);
-            padre.agregar_hijo(TreeNode::new(":".to_string()));
-            agregar_expr_infix(falso, padre);
+            let mut n = TreeNode::new("?:".to_string());
+            n.agregar_hijo(nodo_expr(condicion));
+            n.agregar_hijo(nodo_expr(verdadero));
+            n.agregar_hijo(nodo_expr(falso));
+            n
         }
-        _ => padre.agregar_hijo(nodo_expr_compuesto(e)),
-    }
-}
-
-/// Nodo hoja o subárbol para expresiones que no se descomponen en infijo plano.
-fn nodo_expr_compuesto(e: &Expr) -> TreeNode {
-    match e {
-        Expr::Literal { valor, .. } => TreeNode::new(fmt_literal(valor)),
-        Expr::Identificador { nombre, .. } => TreeNode::new(nombre.clone()),
+        Expr::Asignacion {
+            operador,
+            destino,
+            valor,
+            ..
+        } => {
+            let mut n = TreeNode::new(fmt_operador_asignacion(*operador));
+            n.agregar_hijo(nodo_expr(destino));
+            n.agregar_hijo(nodo_expr(valor));
+            n
+        }
         Expr::Llamada {
             funcion,
             argumentos,
             ..
         } => {
             let mut n = TreeNode::new("llamada".to_string());
-            n.agregar_hijo(nodo_expr_compuesto(funcion));
+            n.agregar_hijo(nodo_expr(funcion));
             for arg in argumentos {
-                let mut arg_n = TreeNode::new("arg".to_string());
-                agregar_expr_infix(arg, &mut arg_n);
-                n.agregar_hijo(arg_n);
+                n.agregar_hijo(nodo_expr(arg));
             }
             n
         }
         Expr::Index { arreglo, indice, .. } => {
             let mut n = TreeNode::new("[]".to_string());
-            n.agregar_hijo(nodo_expr_compuesto(arreglo));
-            let mut idx = TreeNode::new("indice".to_string());
-            agregar_expr_infix(indice, &mut idx);
-            n.agregar_hijo(idx);
+            n.agregar_hijo(nodo_expr(arreglo));
+            n.agregar_hijo(nodo_expr(indice));
             n
         }
         Expr::Miembro {
@@ -298,32 +284,20 @@ fn nodo_expr_compuesto(e: &Expr) -> TreeNode {
                 format!(".{}", miembro)
             };
             let mut n = TreeNode::new(op);
-            n.agregar_hijo(nodo_expr_compuesto(objeto));
+            n.agregar_hijo(nodo_expr(objeto));
             n
         }
         Expr::Cast { tipo, expr, .. } => {
             let mut n = TreeNode::new(format!("cast {}", fmt_tipo(tipo)));
-            let mut inner = TreeNode::new("expr".to_string());
-            agregar_expr_infix(expr, &mut inner);
-            n.agregar_hijo(inner);
+            n.agregar_hijo(nodo_expr(expr));
             n
         }
         Expr::Sizeof { objetivo, .. } => {
             let mut n = TreeNode::new("sizeof".to_string());
             match objetivo {
-                SizeofObjetivo::Expr(expr) => {
-                    let mut inner = TreeNode::new("expr".to_string());
-                    agregar_expr_infix(expr, &mut inner);
-                    n.agregar_hijo(inner);
-                }
+                SizeofObjetivo::Expr(expr) => n.agregar_hijo(nodo_expr(expr)),
                 SizeofObjetivo::Tipo(tipo) => n.agregar_hijo(TreeNode::new(fmt_tipo(tipo))),
             }
-            n
-        }
-        // Reutilizar infix para binarias/unarias anidadas en contextos compuestos
-        other => {
-            let mut n = TreeNode::new("expr".to_string());
-            agregar_expr_infix(other, &mut n);
             n
         }
     }

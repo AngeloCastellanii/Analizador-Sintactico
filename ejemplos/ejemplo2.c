@@ -1,4 +1,5 @@
 int max(int a, int b) {
+    int x = 12 + 5 - 9 * 5 / (3+2);
     if (a > b) {
         return a;
     }

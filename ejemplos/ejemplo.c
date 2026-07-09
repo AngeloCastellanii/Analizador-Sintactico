@@ -5,7 +5,9 @@ int main() {
     const char *msg = "Hola, mundo";
 
     if (x > 0) {
-        x++;
+        if (x > 10) {
+            x++;
+        }
         return 0;
     }
     return x != 0;
